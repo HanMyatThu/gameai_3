@@ -11,8 +11,8 @@ from ppo_agent import PPOAgent
 from sound import stop as soundStop, play as soundPlay
 
 # --- Configuration ---
-MODEL_TAG = "best"
-MODEL_DIR = 'models/ppo_1'
+MODEL_TAG = "best_1"
+MODEL_DIR = 'models/ppo_1/best'
 FPS = 60
 NUM_GAMES = 10
 
