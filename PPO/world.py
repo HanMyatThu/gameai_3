@@ -236,13 +236,11 @@ class World:
       _, next_bottom_pipe = self._find_next_pipe() # Find the pipe we are aiming for
 
       for pipe in self.upcoming_pipes:
-          # Consider only bottom pipes for scoring trigger
-          # Check if the pipe hasn't been scored yet AND bird's center passed pipe's center
           if not pipe.get_is_flipped() and pipe not in self.scored_pipes and bird.rect.centerx > pipe.rect.centerx:
-              self.last_score += 1  # <<< INCREMENT ACTUAL SCORE
-              self.scored_pipes.add(pipe)  # <<< MARK PIPE AS SCORED
-              # play("score")  # Play sound only once per score
-              self.current_reward += 5.0  # Add reward only once per score
+              self.last_score += 1
+              self.scored_pipes.add(pipe)
+              # play("score")
+              self.current_reward += 5.0
               print(f"Passed Pipe! Score: {self.last_score}, Reward: {self.current_reward}")
 
   def step(self, action):
