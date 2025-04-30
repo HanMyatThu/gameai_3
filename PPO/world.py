@@ -25,6 +25,7 @@ class World:
     self.pipe_count = 0
     self.is_night = False
     self.theme_switch_count = 15
+    self.scored_pipes = set()
     self._generate_world()
 
     self.playing = False
@@ -234,20 +235,15 @@ class World:
       passed_pipe = False
       _, next_bottom_pipe = self._find_next_pipe() # Find the pipe we are aiming for
 
-
-      potential_score = 0
       for pipe in self.upcoming_pipes:
-          if not pipe.get_is_flipped() and bird.rect.centerx > pipe.rect.centerx:
-               potential_score += 1
-
-      current_score = potential_score // 2
-
-      if current_score > self.last_score:
-          play("score")
-          bird.score += (current_score - self.last_score)
-          self.current_reward += 5.0 # Reward for passing pipe
-          self.last_score = current_score
-          print(f"Passed Pipe! Score: {bird.score}, Reward: {self.current_reward}")
+          # Consider only bottom pipes for scoring trigger
+          # Check if the pipe hasn't been scored yet AND bird's center passed pipe's center
+          if not pipe.get_is_flipped() and pipe not in self.scored_pipes and bird.rect.centerx > pipe.rect.centerx:
+              self.last_score += 1  # <<< INCREMENT ACTUAL SCORE
+              self.scored_pipes.add(pipe)  # <<< MARK PIPE AS SCORED
+              # play("score")  # Play sound only once per score
+              self.current_reward += 5.0  # Add reward only once per score
+              print(f"Passed Pipe! Score: {self.last_score}, Reward: {self.current_reward}")
 
   def step(self, action):
       self.current_reward = 0.0
