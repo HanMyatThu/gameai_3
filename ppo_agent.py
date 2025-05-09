@@ -6,7 +6,7 @@ from torch.distributions.categorical import Categorical
 import numpy as np
 import os
 
-from test_env.memory import PPOMemory
+# from test_env.memory import PPOMemory
 
 
 
@@ -71,8 +71,7 @@ class PPOAgent:
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=lr)
 
-        self.memory = PPOMemory(self.batch_size, self.device)
-
+        # self.memory = PPOMemory(self.batch_size, self.device)
         self.total_steps = 0
 
     def store_transition(self, state, action, probs, vals, reward, done):
@@ -194,7 +193,7 @@ class PPOAgent:
 
         return advantages
 
-    def get_greedy_action(self, observation):
+    def get_action(self, observation):
         """Selects the action with the highest probability (greedy)."""
         # Convert observation to tensor if it's not already
         if isinstance(observation, np.ndarray):

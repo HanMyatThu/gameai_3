@@ -25,7 +25,7 @@ class QNetwork(nn.Module):
 class DoubleDQNAgent:
     def __init__(self, state_dim, action_dim, memory_size=50000, batch_size=64, gamma=0.99,
                  lr=1e-4, epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.01, update_target_every=300,
-                 chkpt_dir='DDQN/models_ddqn'):
+                 chkpt_dir='models/doubleDQN/best'):
 
         self.state_dim = state_dim
         self.action_dim = action_dim
