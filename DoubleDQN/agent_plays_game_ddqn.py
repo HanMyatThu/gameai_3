@@ -37,6 +37,8 @@ agent = DoubleDQNAgent(
 try:
     agent.load_models(MODEL_TAG)
     agent.q_online.eval()
+    agent.q_target.eval()
+    agent.epsilon = 0.0 # new line to disable exploration
     print(f"Successfully loaded DDQN model '{MODEL_TAG}' from {MODEL_DIR}")
 except FileNotFoundError as e:
     print(f"Error loading models: {e}")
@@ -66,7 +68,8 @@ def play_game():
                     print("Playback stopped by user.")
                     return
 
-            action = agent.get_action(state)
+            #action = agent.get_action(state)
+            action = agent.get_greedy_action(state)
             next_state, reward, done = world.step(action)
             state = np.array(next_state, dtype=np.float32)
             total_reward += reward

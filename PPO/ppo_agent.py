@@ -6,7 +6,7 @@ from torch.distributions.categorical import Categorical
 import numpy as np
 import os
 
-from test_env.memory import PPOMemory
+from memory import PPOMemory
 
 
 

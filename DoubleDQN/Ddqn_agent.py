@@ -61,6 +61,13 @@ class DoubleDQNAgent:
             q_values = self.q_online(state)
         return q_values.argmax().item()
 
+    def get_greedy_action(self, state):
+        """Always pick the highest-Q action, ignoring ε."""
+        state_t = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        with torch.no_grad():
+            q_values = self.q_online(state_t)
+        return int(q_values.argmax(dim=1).item())
+
     def store_transition(self, state, action, reward, next_state, done):
         self.replay_buffer.push(state, action, reward, next_state, done)
         # self.replay_buffer.append((state, action, reward, next_state, done))
