@@ -50,6 +50,7 @@ world = World(screen, theme)
 
 # --- Main Play Loop ---
 def play_game():
+    prev_score = 0
     for i_game in range(1, NUM_GAMES + 1):
         print(f"\n--- Starting Game {i_game}/{NUM_GAMES} ---")
         state = world.reset()
@@ -90,11 +91,17 @@ def play_game():
         duration = end_time - start_time
         print(f"Game {i_game} Over!")
         print(f" Score: {world.last_score}")
+        print(f" Last Best Score: {prev_score}")
+        curr_score = world.last_score
+        if prev_score < curr_score:
+            prev_score = curr_score
+            print(f" New Best Score: {prev_score}")
         print(f" Total Reward: {total_reward:.2f}")
         print(f" Steps: {game_steps}")
         print(f" Duration: {duration:.2f} seconds")
         time.sleep(1)
 
+    print(f"Best Score: {prev_score}")
     print("\nFinished playing all games.")
 
 
