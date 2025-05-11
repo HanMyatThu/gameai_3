@@ -7,7 +7,6 @@ class GameIndicator:
   def __init__(self, screen, theme):
     self.screen = screen
     self.theme = theme
-    print(pygame.font.get_fonts())
     self.font = pygame.font.SysFont('jokerman', 50) 
     self.info_font = pygame.font.SysFont('magneto', 28) 
     self.color =  pygame.Color("white")
