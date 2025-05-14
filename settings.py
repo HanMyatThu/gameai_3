@@ -8,7 +8,7 @@ FPS = 60
 
 # ========== Theme ==========
 DEFAULT_THEME = "day"
-THEMES = ["day", "night"]
+THEMES = ["day", "night", "hell", "space"]
 
 # ========== Pipes ==========
 PIPE_ROWS = HEIGHT // 10

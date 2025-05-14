@@ -13,6 +13,16 @@ class ThemeManager:
         "background": pygame.image.load("assets/layout/night/bg_night.png").convert(),
         "pipe": pygame.image.load("assets/layout/night/pipe_night.png").convert_alpha(),
         "ground": pygame.image.load("assets/layout/night/ground_night.png").convert(),
+      },
+      "hell": {
+        "background": pygame.image.load("assets/layout/hell/bg.png").convert(),
+        "pipe": pygame.image.load("assets/layout/hell/pipe.png").convert_alpha(),
+        "ground": pygame.image.load("assets/layout/hell/ground.png").convert(),
+      },
+      "space": {
+        "background": pygame.image.load("assets/layout/space/bg.png").convert(),
+        "pipe": pygame.image.load("assets/layout/space/pipe.png").convert_alpha(),
+        "ground": pygame.image.load("assets/layout/space/ground.png").convert(),
       }
     }
     self.current_theme = DEFAULT_THEME

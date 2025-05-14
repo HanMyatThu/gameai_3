@@ -4,18 +4,22 @@ import pygame
 from pipe import Pipe
 from bird import Bird
 from game import GameIndicator
-from settings import WIDTH, HEIGHT, PIPE_SIZE, PIPE_GAP, DEFAULT_PIPE_PAIR, PIPE_PATTERNS, GROUND_HEIGHT
+from settings import WIDTH, HEIGHT, PIPE_SIZE, PIPE_GAP, DEFAULT_PIPE_PAIR, PIPE_PATTERNS, THEMES
 import random
 from sound import play, stop
 import numpy as np
 
 class World:
-  def __init__(self, screen, theme):
+  def __init__(self, screen, theme, isMulti=False):
     self.screen = screen
     self.theme = theme
     self.world_shift = 0
     self.current_x = 0
     self.gravity = 0.5
+
+    # for multi game modes
+    self.mode_switch_count = 50
+    self.multi_mode = isMulti
 
     # pattern for pipes
     self.current_pattern_name = 'zigzag'
@@ -25,7 +29,7 @@ class World:
     self.upcoming_pipes = pygame.sprite.Group()
     self.player = pygame.sprite.GroupSingle()
     self.pipe_count = 0
-    self.is_night = False
+    self.game_mode = "day"
     self.theme_switch_count = 15
     self.scored_pipes = set()
     self._generate_world()
@@ -114,21 +118,38 @@ class World:
 
     pipe_gap = int(PIPE_GAP * gap_multiplier)
 
-    if (self.pipe_count > 0) and (self.pipe_count % self.theme_switch_count == 0):
-        self.is_night = not self.is_night
-        new_theme = "night" if self.is_night else "day"
-        if self.theme.get_current_theme() != new_theme:
-            play(new_theme)
-            self.theme.set_theme(new_theme)
-            print(f"Switched theme to {new_theme.upper()}")
+    if (self.multi_mode):
+        # for 15 pipes while day mode we switch to night and day
+        if self.game_mode in ("day", "night") and (self.pipe_count > 0) and (self.pipe_count % self.theme_switch_count == 0):
+            if (self.game_mode == "day"): 
+                self.game_mode = "night"
+            else: 
+                self.game_mode = "day"
+        
+        # for 50 pipes we change to hell or space or (game_mode shouldn't be day, which means if game_mode is day, it should definitely change to different mode ())
+        # hell or space, if current game_mode is "space", it might switch to day or hell, no night and space (currentmode)
+        if (self.pipe_count > 0) and (self.pipe_count % self.mode_switch_count == 0):
+            new_mode = list(filter(lambda a: a != self.game_mode and a != 'night', THEMES))
+            self.game_mode = random.choice(new_mode)
+        
+    else:
+        if (self.pipe_count > 0) and (self.pipe_count % self.theme_switch_count == 0):
+            self.game_mode = "night" if self.game_mode == 'day' else "day"
+
+    # enable a new theme
+    if self.theme.get_current_theme() != self.game_mode:
+        print(self.game_mode,'game_mode')
+        play(self.game_mode)
+        self.theme.set_theme(self.game_mode)
+        print(f"Switched theme to {self.game_mode.upper()}")
 
     top_pipe_height = pipe_pair[0] * PIPE_SIZE
     bottom_pipe_y = top_pipe_height + pipe_gap
-    bottom_pipe_height_needed = HEIGHT - bottom_pipe_y
+    # bottom_pipe_height_needed = HEIGHT - bottom_pipe_y
 
-    pipe_top = Pipe((WIDTH, top_pipe_height - HEIGHT), PIPE_SIZE, HEIGHT, True, self.is_night, self.theme)
+    pipe_top = Pipe((WIDTH, top_pipe_height - HEIGHT), PIPE_SIZE, HEIGHT, True, self.game_mode, self.theme)
 
-    pipe_bottom = Pipe((WIDTH, bottom_pipe_y), PIPE_SIZE, HEIGHT, False, self.is_night, self.theme)
+    pipe_bottom = Pipe((WIDTH, bottom_pipe_y), PIPE_SIZE, HEIGHT, False, self.game_mode, self.theme)
 
     self.upcoming_pipes.add(pipe_top)
     self.upcoming_pipes.add(pipe_bottom)
@@ -146,7 +167,7 @@ class World:
     self.pipe_count = 0
     self.pattern_index = 0
     self.last_score = 0
-    self.is_night = False
+    self.game_mode = "day"
     self.theme.set_theme("day")
     stop("night")
     stop("day")
@@ -263,8 +284,6 @@ class World:
 
 
       self.apply_physics()
-
-
       self.scrollX()
       self.upcoming_pipes.update(self.world_shift)
 
@@ -308,4 +327,4 @@ class World:
       return self.get_state()
 
   def update(self, player_event=None):
-      pass
+    pass

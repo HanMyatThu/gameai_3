@@ -1,10 +1,9 @@
 import pygame
 
 class Pipe(pygame.sprite.Sprite):
-    def __init__(self, pos, width, height, flip, is_night, assets):
+    def __init__(self, pos, width, height, flip, theme, assets):
         super().__init__()
         self.width = width
-        theme = "night" if is_night else "day"
         # Need to access the theme assets correctly - passing ThemeManager might be better
         # Assuming assets is the ThemeManager instance for now
         # assets.set_theme(theme) # Theme set in World, Pipe just uses current
