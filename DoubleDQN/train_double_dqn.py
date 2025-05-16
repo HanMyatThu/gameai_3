@@ -192,7 +192,7 @@ EPSILON_DECAY        = 0.96
 EPSILON_MIN          = 0.01
 UPDATE_TARGET_EVERY  = 300
 
-MAX_STEPS            = 3_000_000     # stop after this many env steps
+MAX_STEPS            = 4_000_000     # stop after this many env steps
 LOG_INTERVAL_STEPS   = 100_000       # print stats every 100k steps
 SAVE_INTERVAL_STEPS  = 1_000_000     # checkpoint every 1M steps
 

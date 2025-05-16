@@ -6,7 +6,8 @@ import random
 import numpy as np
 import os
 
-from memory import ReplayBuffer
+#from memory import ReplayBuffer
+from memory import PrioritizedReplayBuffer
 
 class QNetwork(nn.Module):
     def __init__(self, state_dim, action_dim):
@@ -49,8 +50,12 @@ class DoubleDQNAgent:
         self.q_online.to(self.device)
         self.q_target.to(self.device)
 
+        self.prio_alpha      = 0.6
+        self.beta_start      = 0.4
+        self.beta_frames     = 1_000_000
+
         # self.replay_buffer = deque(maxlen=memory_size)
-        self.replay_buffer = ReplayBuffer(capacity=memory_size)
+        self.replay_buffer = PrioritizedReplayBuffer(capacity=memory_size,alpha=self.prio_alpha)
         self.steps_done = 0
 
     def get_action(self, state):
@@ -78,7 +83,10 @@ class DoubleDQNAgent:
 
         # batch = random.sample(self.replay_buffer, self.batch_size)
         # states, actions, rewards, next_states, dones = zip(*batch)
-        states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
+        #states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
+        beta = min(1.0,self.beta_start + (1.0 - self.beta_start) * (self.steps_done / self.beta_frames))
+        (states, actions, rewards, next_states, dones,indices, weights) = self.replay_buffer.sample(self.batch_size, beta=beta) 
+        weights = torch.FloatTensor(weights).unsqueeze(1).to(self.device)
 
         states = torch.FloatTensor(states).to(self.device)
         actions = torch.LongTensor(actions).unsqueeze(1).to(self.device)
@@ -94,8 +102,10 @@ class DoubleDQNAgent:
             next_q = self.q_target(next_states).gather(1, next_actions)
             target_q = rewards + (1 - dones) * self.gamma * next_q
 
-        loss = self.loss_fn(current_q, target_q)
-
+        #loss = self.loss_fn(current_q, target_q)
+        td_errors = target_q - current_q
+        loss      = (td_errors.pow(2) * weights).mean()
+        
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -103,6 +113,14 @@ class DoubleDQNAgent:
         self.steps_done += 1
         if self.steps_done % self.update_target_every == 0:
             self.q_target.load_state_dict(self.q_online.state_dict())
+        
+        #new_priorities = td_errors.abs().detach().cpu().numpy() + 1e-6
+        new_priorities = (td_errors.abs() + 1e-6) \
+                             .detach() \
+                             .cpu() \
+                             .numpy() \
+                             .flatten()
+        self.replay_buffer.update_priorities(indices, new_priorities)    
 
     def decay_epsilon(self):
         if self.epsilon > self.epsilon_min:
