@@ -44,6 +44,14 @@ class World:
     self.current_reward = 0.0
     self.last_score = 0
 
+    self.speed = -6
+    self.last_milestone = 0
+
+    # Level specific parameters
+    self.vel = 10.0
+    self.mult = 1.0
+    self.dist = 4
+
   def _find_next_pipe(self):
       """Finds the next upcoming pipe pair relative to the bird."""
       bird = self.player.sprite
@@ -76,7 +84,7 @@ class World:
       if top_pipe and bottom_pipe:
           # State calculation
           bird_y_norm = bird.rect.centery / HEIGHT
-          bird_vel = bird.direction.y / 10.0
+          bird_vel = bird.direction.y / self.vel
           h_dist = (bottom_pipe.rect.left - bird.rect.right)
           h_dist_norm = h_dist / WIDTH
 
@@ -94,7 +102,7 @@ class World:
           #print(f"State: bird_y={state[0]:.2f}, bird_vel={state[1]:.2f}, h_dist={state[2]:.2f}, v_dist={state[3]:.2f}")
       else:
           bird_y_norm = bird.rect.centery / HEIGHT
-          bird_vel = bird.direction.y / 10.0
+          bird_vel = bird.direction.y / self.vel
           state = np.array([bird_y_norm, bird_vel, 0.5, 0.0], dtype=np.float32)
 
       return state
@@ -108,7 +116,7 @@ class World:
 
     current_pattern_info = PIPE_PATTERNS[self.current_pattern_name]
     pipe_pairs = current_pattern_info.get("pairs")
-    gap_multiplier = current_pattern_info.get("gap_multiplier", 1.0)
+    gap_multiplier = current_pattern_info.get("gap_multiplier", self.mult)
 
     if pipe_pairs:
         pipe_pair = pipe_pairs[self.pattern_index % len(pipe_pairs)]
@@ -167,6 +175,12 @@ class World:
     self.pipe_count = 0
     self.pattern_index = 0
     self.last_score = 0
+    self.scored_pipes.clear()
+    self.speed = -6
+    self.gravity = 0.5
+    self.player.jump_move = -8
+    self.player.level = 1
+    self.last_milestone = 0
     self.game_mode = "day"
     self.theme.set_theme("day")
     stop("night")
@@ -174,6 +188,7 @@ class World:
     stop("hit")
     stop("background")
 
+    self.speed_control()
     self._add_pipe()
     # Find the first pipe added and shift it slightly right so it's not immediate collision
     first_pipe_x = WIDTH + 150
@@ -191,9 +206,42 @@ class World:
     self.game_over_sound = False
     self.current_reward = 0.0
 
-
   def scrollX(self):
-    self.world_shift = -6
+      """ Speed Switch Logic """
+      bird = self.player.sprite
+      if self.game_over:
+          self.speed = -6
+          self.last_milestone = 0
+          bird.level = 1
+      milestone = bird.score // 15
+      if milestone > self.last_milestone and bird.score < 45 and milestone != 0:
+          # self.speed_update = True
+          self.speed -= 2
+          bird.jump_move -= 2
+          self.last_milestone = milestone
+          bird.level += 1
+      # if self.speed_update:
+      #   print(f" Update Jump Move = {bird.jump_move}")
+      #   print(f"---- Updated Speed: {self.speed} ----")
+      self.world_shift = self.speed if self.playing else 0
+
+  def speed_control(self):
+      """ Change of dynamics based on speed """
+      if self.speed == -10:
+          self.dist = 6
+          self.vel = 18.0
+          self.mult = 1.2
+          self.gravity = 0.7
+      elif self.speed == -8:
+          self.dist = 5
+          self.vel = 15.0
+          self.mult = 1.1
+          self.gravity = 0.6
+      else:
+          self.dist = 4
+          self.vel = 10.0
+          self.mult = 1.0
+          self.gravity = 0.5
 
 
   def apply_physics(self):
@@ -236,10 +284,6 @@ class World:
               self.current_reward = -10.0
           return True
       else:
-          for pipe in self.upcoming_pipes:
-              if  bird.rect.x >= pipe.rect.centerx:
-                  #play("score")
-                  bird.score += 1
           return False
 
 
@@ -282,7 +326,7 @@ class World:
               bird.update(is_jump=True)
               # play("jump")
 
-
+      self.speed_control()
       self.apply_physics()
       self.scrollX()
       self.upcoming_pipes.update(self.world_shift)
@@ -290,7 +334,7 @@ class World:
       rightmost_x = -float('inf')
       for pipe in self.upcoming_pipes:
           rightmost_x = max(rightmost_x, pipe.rect.right)
-      if rightmost_x < WIDTH - (PIPE_SIZE * 4):
+      if rightmost_x < WIDTH - (PIPE_SIZE * self.dist):
            self._add_pipe()
 
       done = self.handle_collision()
@@ -313,10 +357,8 @@ class World:
 
       self.player.draw(self.screen)
 
-      if self.player.sprite: # Check if bird exists
-        self.game.show_score(self.player.sprite.score)
-      else:
-        self.game.show_score(0)
+      self.game.show_score(self.player.sprite.score)
+      self.game.show_levels(self.player.sprite.level)
 
 
 

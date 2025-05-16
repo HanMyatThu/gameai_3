@@ -17,7 +17,7 @@ from sound import stop as soundStop, play as soundPlay
 # --- Configuration --- 
 MODEL_TYPES = ["ppo", "ddqn"]
 # tags used when calling agent.load_models(tag)
-MODEL_TAGS  = ["best_1", "best"]
+MODEL_TAGS  = ["best_2", "best"]
 # base directories under which we expect subfolders: day, hell, space
 MODEL_DIRS  = [
     "models/ppo_1",         # for PPO
@@ -29,7 +29,7 @@ AGENT_CLASSES = [PPOAgent, DoubleDQNAgent]
 # themes we support
 THEMES = ["day", "hell", "space","night"]
 
-FPS       = 60
+FPS       = 90
 NUM_GAMES = 10
 
 def parse_args():

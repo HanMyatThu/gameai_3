@@ -17,6 +17,7 @@ class Bird(pygame.sprite.Sprite):
         # bird status
         self.direction = pygame.math.Vector2(0, 0)
         self.score = 0
+        self.level = 1
 
     # for bird's flying animation
     def _animate(self):

@@ -13,10 +13,14 @@ class GameIndicator:
     self.info_color_night = pygame.Color("white")
     self.info_color = pygame.Color("black")
 
+  def show_levels(self, level):
+    game_level = self.font.render(f"STAGE: {str(level)}", True, self.color)
+    self.screen.blit(game_level, (390, 50))
+
   def show_score(self, int_score):
     bird_score = str(int_score)
     score = self.font.render(bird_score, True, self.color)
-    self.screen.blit(score, (WIDTH // 2, 50))
+    self.screen.blit(score, (WIDTH // 2, 90))
 
   def instructions(self):
     info1 = "Press SPACE button to Jump!"
