@@ -25,3 +25,12 @@ class Pipe(pygame.sprite.Sprite):
         # removes the pipe in the game screen once it is not shown in the screen anymore
         if self.rect.right < 0: # Check if fully off screen left
             self.kill()
+
+    def update_theme(self, assets):
+      self.image = assets.get("pipe")  
+      self.image = pygame.transform.scale(self.image, (self.width, self.rect.height))
+      
+      if self.is_flipped:
+          self.image = pygame.transform.flip(self.image, False, True)
+
+      self.mask = pygame.mask.from_surface(self.image)

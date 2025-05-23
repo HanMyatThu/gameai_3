@@ -137,7 +137,10 @@ class World:
         # for 50 pipes we change to hell or space or (game_mode shouldn't be day, which means if game_mode is day, it should definitely change to different mode ())
         # hell or space, if current game_mode is "space", it might switch to day or hell, no night and space (currentmode)
         if (self.pipe_count > 0) and (self.pipe_count % self.mode_switch_count == 0):
-            new_mode = list(filter(lambda a: a != self.game_mode and a != 'night', THEMES))
+            if (self.game_mode in ("day", "night")):
+              new_mode = list(filter(lambda a: a != "day" and a != 'night', THEMES))
+            else:
+              new_mode = list(filter(lambda a: a != self.game_mode and a != 'night', THEMES))
             self.game_mode = random.choice(new_mode)
         
     else:
@@ -149,6 +152,16 @@ class World:
         print(self.game_mode,'game_mode')
         play(self.game_mode)
         self.theme.set_theme(self.game_mode)
+
+         # Force all existing pipes to update to new theme 
+        for pipe in self.upcoming_pipes:
+          pipe.update_theme(self.theme)
+
+         # --- Force bird to update to new theme ---
+        bird = self.player.sprite
+        if bird:
+            bird.update(is_jump=False, game_mode=self.game_mode)
+
         print(f"Switched theme to {self.game_mode.upper()}")
 
     top_pipe_height = pipe_pair[0] * PIPE_SIZE
@@ -186,6 +199,9 @@ class World:
     stop("night")
     stop("day")
     stop("hit")
+    stop("hell")
+    stop("space")
+    stop("nextlevel")
     stop("background")
 
     self.speed_control()
@@ -213,13 +229,14 @@ class World:
           self.speed = -6
           self.last_milestone = 0
           bird.level = 1
-      milestone = bird.score // 15
+      milestone = bird.score // 20
       if milestone > self.last_milestone and bird.score < 45 and milestone != 0:
           # self.speed_update = True
           self.speed -= 2
           bird.jump_move -= 2
           self.last_milestone = milestone
           bird.level += 1
+          play("next")
       # if self.speed_update:
       #   print(f" Update Jump Move = {bird.jump_move}")
       #   print(f"---- Updated Speed: {self.speed} ----")
@@ -275,7 +292,7 @@ class World:
               self.playing = False
               self.game_over = True
               if not self.game_over_sound:
-                  #play("hit")
+                  play("hit")
                   current_theme = self.theme.get_current_theme()
                   stop(current_theme)
                   stop("background")
@@ -323,8 +340,8 @@ class World:
       # --- Apply Action ---
       if action == 1:
           if bird:
-              bird.update(is_jump=True)
-              # play("jump")
+            bird.update(game_mode = self.game_mode, is_jump=True)
+            play("jump")
 
       self.speed_control()
       self.apply_physics()
@@ -359,8 +376,6 @@ class World:
 
       self.game.show_score(self.player.sprite.score)
       self.game.show_levels(self.player.sprite.level)
-
-
 
   # --- Reset method for our agent ---
   def reset(self):

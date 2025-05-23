@@ -23,7 +23,7 @@ PIPE_PATTERNS = {
     "gap_multiplier": 1.0
   },
   "ascending": {
-    "pairs": [(1, 7), (2, 6), (3, 5), (4, 4)],
+    "pairs": [(2, 6), (2, 6), (3, 5), (4, 4)],
     "gap_multiplier": 1.0
   },
   "descending": {
@@ -37,6 +37,7 @@ PIPE_PATTERNS = {
 }
 
 def import_sprite(path):
+  print('path', path)
   surface_list = []
   for _, __, image_files in walk(path):
     for image in sorted(image_files): 

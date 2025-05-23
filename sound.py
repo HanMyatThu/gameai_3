@@ -10,6 +10,9 @@ sounds = {
     "background": pygame.mixer.Sound("assets/sounds/background.mp3"),
     "night": pygame.mixer.Sound("assets/sounds/night.mp3"),
     "day": pygame.mixer.Sound("assets/sounds/day.mp3"),
+    "space": pygame.mixer.Sound("assets/sounds/space.mp3"),
+    "hell": pygame.mixer.Sound("assets/sounds/hell.mp3"),
+    "next": pygame.mixer.Sound("assets/sounds/nextlevel.mp3"),
 }
 
 def play(sound_name):
