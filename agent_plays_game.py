@@ -34,7 +34,7 @@ AGENT_CLASSES = [PPOAgent, DoubleDQNAgent, DQNAgent, SACAgent]
 THEMES = ["day", "hell", "space","night"]
 DEFAULT = ["best"]
 
-FPS       = 90
+FPS       = 120
 NUM_GAMES = 10
 
 def parse_args():
