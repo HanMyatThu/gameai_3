@@ -30,12 +30,10 @@ This project extends the classic Flappy Bird into a flexible simulation environm
 
 ## Requirements
 
-- Python 3.7+
-- [PyTorch](https://pytorch.org/)
-- [Pandas](https://pandas.pydata.org/)
+- Python 3.8+
+- [Pygame](https://www.pygame.org)
 - [NumPy](https://numpy.org/)
-- [scikit-learn](https://scikit-learn.org/)
-- [tqdm](https://github.com/tqdm/tqdm)
+- torch
 
 You can install the required packages via pip:
 
