@@ -178,10 +178,10 @@ class PPOAgent:
 
         for t in reversed(range(len(rewards))):
             if t == len(rewards) - 1:
-                next_non_terminal = 1.0 - dones[t].float() # 1 if not done, 0 if done
+                next_non_terminal = 1.0 - dones[t].float()
                 next_value = 0
             else:
-                 next_non_terminal = 1.0 - dones[t+1].float() # Check if *next* state was terminal
+                 next_non_terminal = 1.0 - dones[t+1].float()
                  next_value = values[t+1]
 
             delta = rewards[t] + self.gamma * next_value * next_non_terminal - values[t]

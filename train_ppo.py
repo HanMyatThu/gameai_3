@@ -11,14 +11,13 @@ from theme import ThemeManager
 from ppo_agent import PPOAgent
 from sound import stop as soundStop
 
-# --- Pygame Setup ---
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT + GROUND_HEIGHT))
 pygame.display.set_caption("Super Flappy Bird - PPO Training")
 theme = ThemeManager()
 FPS_CLOCK = pygame.time.Clock()
 
-# --- PPO Agent Setup ---
+# PPO Agent Setup
 STATE_DIM = 4
 ACTION_DIM = 2
 LEARNING_RATE = 1e-4
@@ -36,10 +35,10 @@ agent = PPOAgent(STATE_DIM, ACTION_DIM, lr=LEARNING_RATE, gamma=GAMMA,
                  batch_size=BATCH_SIZE, n_epochs=N_EPOCHS,
                  entropy_coef=ENTROPY_COEF, value_loss_coef=VALUE_LOSS_COEF)
 
-# --- Game World Setup ---
+# Game World Setup
 world = World(screen, theme)
 
-# --- Training Parameters ---
+# HyperParameters
 MAX_TOTAL_TIMESTEPS = 2000000
 LOG_INTERVAL = 20
 RENDER_EVERY_N_EPISODES = 100
@@ -57,7 +56,6 @@ entropy_losses = []
 total_losses = []
 
 
-# --- Main Training Loop ---
 def train():
     print("Starting PPO Training...")
     current_total_steps = 0
@@ -71,8 +69,6 @@ def train():
         current_episode_reward = 0
         current_episode_length = 0
         done = False
-
-        # Collect data for UPDATE_TIMESTEP steps or until episode ends
         agent.set_eval_mode()
         agent.set_train_mode()
 
@@ -86,16 +82,14 @@ def train():
                     pygame.quit()
                     sys.exit()
 
-            # --- Agent chooses action ---
             action, log_prob, value = agent.select_action(state)
 
-            # --- Environment steps ---
             next_state, reward, done = world.step(action)
             next_state = np.array(next_state, dtype=np.float32) if not done else np.zeros_like(state)
             if done: next_state = np.array(state, dtype=np.float32)
 
 
-            # --- Store experience ---
+            # Store experience
             agent.store_transition(state, action, log_prob, value, reward, done)
 
             state = next_state
@@ -115,11 +109,8 @@ def train():
                 pygame.display.flip()
                 FPS_CLOCK.tick(60) # Control render speed
 
-            # --- End episode if done ---
             if done:
                 break
-
-        # --- Learning Phase ---
 
         if len(agent.memory) >= agent.batch_size:
             print(f"--- Performing Update (Episode {episode}, Total Steps: {current_total_steps}) ---")
@@ -135,7 +126,6 @@ def train():
              print(f"Warning: Skipped learning step. Memory size {len(agent.memory)} < {agent.batch_size}")
 
 
-        # --- End of Episode Logging ---
         recent_rewards.append(current_episode_reward)
         recent_lengths.append(current_episode_length)
         episode_rewards_history.append(current_episode_reward)
@@ -147,15 +137,13 @@ def train():
         if episode % LOG_INTERVAL == 0:
             print(f"Ep: {episode} | Steps: {current_total_steps}/{MAX_TOTAL_TIMESTEPS} | Avg Rew (100): {avg_reward_100:.2f} | Last Rew: {current_episode_reward:.2f} | Avg Len (100): {avg_length_100:.1f}")
 
-        # --- Save Model Periodically and if improved ---
+        # Save Model Periodically and if improved
         if episode % SAVE_MODEL_EVERY_N_EPISODES == 0:
             agent.save_models(episode)
         if avg_reward_100 > best_avg_reward and len(recent_rewards) == 100: # Ensure we have 100 samples
              best_avg_reward = avg_reward_100
              agent.save_models("best")
              print(f"*** New Best Average Reward: {best_avg_reward:.2f} - Model Saved ***")
-
-        # --- Stop training if target score reached consistently ---
         if len(recent_rewards) >= 50 and np.mean(list(recent_rewards)[-50:]) > TARGET_SCORE:
              print(f"Target average score ({TARGET_SCORE}) reached over last 50 episodes!")
              agent.save_models("final_target")
@@ -164,8 +152,6 @@ def train():
 
     print("Training Finished.")
     agent.save_models("final")
-
-    # --- Plotting ---
     plot_results(episode_rewards_history, episode_lengths_history, actor_losses, critic_losses, entropy_losses, total_losses)
 
 

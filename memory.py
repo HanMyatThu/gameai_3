@@ -26,11 +26,11 @@ class ReplayBuffer:
 class PPOMemory:
     def __init__(self, batch_size, device):
         self.states = []
-        self.probs = []  # Log probabilities of actions taken
-        self.vals = []   # Critic value estimates for states
+        self.probs = []
+        self.vals = []
         self.actions = []
         self.rewards = []
-        self.dones = []  # Episode termination flags
+        self.dones = []
 
         self.batch_size = batch_size
         self.device = device
@@ -51,7 +51,7 @@ class PPOMemory:
             torch.tensor(self.vals, dtype=torch.float32).to(self.device),
             torch.tensor(self.rewards, dtype=torch.float32).to(self.device),
             torch.tensor(self.dones, dtype=torch.bool).to(self.device),
-            batches  # List of index arrays for each batch
+            batches
         )
 
     def store_memory(self, state, action, probs, vals, reward, done):
