@@ -57,7 +57,7 @@ Controls:
   python agent_plays_game.py --model 1
 ```
 
-Available Agents: (PPO, DDQN)
+Available Agents: (PPO, DDQN, DQN, SAC)
 
 PPO
 ```bash
@@ -67,6 +67,16 @@ PPO
 DDQN
 ```bash
   --model 2 
+```
+
+DQN
+```bash
+  --model 3 
+```
+
+SAC
+```bash
+  --model 4 
 ```
 
 ## Themes and Procedural Content
