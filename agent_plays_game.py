@@ -12,19 +12,23 @@ from world import World
 from theme import ThemeManager
 from ppo_agent import PPOAgent
 from Ddqn_agent import DoubleDQNAgent
+from dqn_agent import DQNAgent
+from sac_agent import SACAgent
 from sound import stop as soundStop, play as soundPlay
 
 # --- Configuration --- 
-MODEL_TYPES = ["ppo", "ddqn"]
+MODEL_TYPES = ["ppo", "ddqn", "dqn", "sac"]
 # tags used when calling agent.load_models(tag)
-MODEL_TAGS  = ["best_2", "best"]
+MODEL_TAGS  = ["best_2", "best", "best", "best"]
 # base directories under which we expect subfolders: day, hell, space
 MODEL_DIRS  = [
     "models/ppo_1",         # for PPO
     "models/doubleDQN",     # for DDQN
+    "models",               # for new DQN (will load models/dqn_model_best.pth)
+    "models"                # for new SAC (will load models/sac_model_best.pth)
 ]
 # agent classes
-AGENT_CLASSES = [PPOAgent, DoubleDQNAgent]
+AGENT_CLASSES = [PPOAgent, DoubleDQNAgent, DQNAgent, SACAgent]
 
 # themes we support
 THEMES = ["day", "hell", "space","night"]
@@ -38,9 +42,9 @@ def parse_args():
     p.add_argument(
         "--model", "-m",
         type=int,
-        choices=[1,2],
+        choices=[1,2,3,4],
         required=True,
-        help="1 = PPO, 2 = DDQN"
+        help="1 = PPO, 2 = DDQN, 3 = DQN (new), 4 = SAC (new)"
     )
     return p.parse_args()
 
@@ -48,52 +52,80 @@ def init_agents(model_idx, isMulti=True):
     base_dir   = MODEL_DIRS[model_idx]
     tag        = MODEL_TAGS[model_idx]
     AgentClass = AGENT_CLASSES[model_idx]
+    model_type_name = MODEL_TYPES[model_idx].upper()
     agents     = {}
 
-    if isMulti:
+    if model_type_name == "DQN" or model_type_name == "SAC":
+        agent_init_params = {
+            'state_dim': 4,
+            'action_dim': 2,
+            'chkpt_dir': base_dir
+        }
+        if model_type_name == "SAC":
+            agent_init_params['action_space_type'] = 'continuous'
+            agent_init_params['action_dim'] = 1
+
+        agent = AgentClass(**agent_init_params)
+        try:
+            model_load_path = os.path.join(base_dir, f"{MODEL_TYPES[model_idx]}_model_{tag}.pth")
+            if model_type_name == "DQN":
+                agent.load_models(tag=tag, model_path_override=model_load_path)
+                agent.policy_net.eval()
+            elif model_type_name == "SAC":
+                agent.load_models(tag=tag, model_path_override=model_load_path)
+                agent.set_eval_mode()
+            
+            print(f"[INFO] Loaded {model_type_name} agent from '{model_load_path}'")
+        except Exception as e:
+            print(f"[ERROR] loading {model_type_name} agent from {model_load_path}: {e}")
+            pygame.quit()
+            sys.exit(1)
+        
+        agents["day"] = agent
+        isMulti = False
+
+    elif isMulti:
         for theme_name in THEMES:
-            chkpt_dir = os.path.join(base_dir, theme_name, "best")
+            theme_specific_chkpt_dir = os.path.join(base_dir, theme_name, "best")
             agent = AgentClass(
                 state_dim=4,
                 action_dim=2,
-                chkpt_dir=chkpt_dir
+                chkpt_dir=theme_specific_chkpt_dir
             )
             try:
                 agent.load_models(tag)
-                if model_idx == 0:
+                if model_type_name == "PPO":
                     agent.set_eval_mode()
-                else:
+                elif model_type_name == "DDQN":
                     agent.q_online.eval()
-                print(f"[INFO] Loaded {MODEL_TYPES[model_idx].upper()} agent for theme '{theme_name}' from '{chkpt_dir}'")
+                print(f"[INFO] Loaded {model_type_name} agent for theme '{theme_name}' from '{theme_specific_chkpt_dir}' with tag '{tag}'")
             except Exception as e:
-                print(f"[ERROR] loading {theme_name} agent from {chkpt_dir}: {e}")
+                print(f"[ERROR] loading {theme_name} agent for {model_type_name} from {theme_specific_chkpt_dir}: {e}")
                 pygame.quit()
                 sys.exit(1)
-
             agents[theme_name] = agent
     else:
-        # Load only the agent from the 'day' theme directory (or your default)
         theme_name = "day"
-        chkpt_dir = os.path.join(base_dir, theme_name, "best")
+        single_theme_chkpt_dir = os.path.join(base_dir, theme_name, "best")
         agent = AgentClass(
             state_dim=4,
             action_dim=2,
-            chkpt_dir=chkpt_dir
+            chkpt_dir=single_theme_chkpt_dir
         )
         try:
             agent.load_models(tag)
-            if model_idx == 0:
+            if model_type_name == "PPO":
                 agent.set_eval_mode()
-            else:
+            elif model_type_name == "DDQN":
                 agent.q_online.eval()
-            print(f"[INFO] Loaded {MODEL_TYPES[model_idx].upper()} agent (single mode) from '{chkpt_dir}'")
+            print(f"[INFO] Loaded {model_type_name} agent (single mode) for theme '{theme_name}' from '{single_theme_chkpt_dir}' with tag '{tag}'")
         except Exception as e:
-            print(f"[ERROR] loading single agent from {chkpt_dir}: {e}")
+            print(f"[ERROR] loading single agent for {model_type_name} from {single_theme_chkpt_dir}: {e}")
             pygame.quit()
             sys.exit(1)
-
         agents["day"] = agent
-    return agents
+    
+    return agents, isMulti
 
 
 def play_game(agents, isMulti=True):
@@ -136,8 +168,17 @@ def play_game(agents, isMulti=True):
           # agent chooses action
           action = current_agent.get_greedy_action(state)
 
+          final_action = action # Default action
+          # Discretize action if the current agent is SAC and continuous
+          if isinstance(current_agent, SACAgent) and current_agent.action_space_type == 'continuous':
+              # current_agent.get_action for continuous SAC with action_dim=1 returns a scalar numpy float.
+              # current_agent.get_greedy_action should also return a scalar for continuous SAC with action_dim=1.
+              action_value = action 
+              final_action = 1 if action_value > 0.0 else 0 # Example: flap if positive value, else do nothing
+              # print(f"SAC raw: {action_value}, discrete: {final_action}") # Optional: for debugging
+
           # step environment
-          next_state, reward, done = world.step(action)
+          next_state, reward, done = world.step(final_action) # Use final_action
           state = np.array(next_state, dtype=np.float32)
           total_reward += reward
           steps += 1
@@ -171,7 +212,7 @@ def play_game(agents, isMulti=True):
 
 if __name__ == "__main__":
     args      = parse_args()
-    model_idx = args.model - 1  # 0 for PPO, 1 for DDQN
+    model_idx = args.model - 1  # 0 for PPO, 1 for DDQN, 2 for DQN, 3 for SAC
 
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT + GROUND_HEIGHT))
@@ -179,15 +220,15 @@ if __name__ == "__main__":
     theme  = ThemeManager()
     clock  = pygame.time.Clock()
 
-    if model_idx == 0:
-      isMulti = True
-    else:
-      isMulti = False
-    # load all three agents for chosen type
-    agents = init_agents(model_idx, isMulti)
+    # Determine if multi-theme based on original logic for PPO/DDQN
+    # For new DQN/SAC, init_agents will override isMulti to False
+    original_isMulti = True if model_idx == 0 else False 
+
+    # load agents
+    agents, final_isMulti = init_agents(model_idx, original_isMulti)
 
     try:
-      play_game(agents, isMulti)
+      play_game(agents, final_isMulti)
     except Exception as e:
       print(f"[ERROR] during playback: {e}")
     finally:
