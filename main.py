@@ -4,6 +4,7 @@ from settings import WIDTH, HEIGHT, GROUND_HEIGHT
 from world import World
 from theme import ThemeManager
 from sound import play as soundPlay
+from game import GameIndicator
 
 pygame.init()
 
@@ -36,16 +37,20 @@ class Main:
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if not world.playing and not world.game_over:
-                    world.playing = True
+                  world.playing = True           
                 if event.key == pygame.K_SPACE:
-                    soundPlay("jump")
-                    world.update("jump")
+                  soundPlay("jump")
+                  world.update("jump")
                 if event.key == pygame.K_r:
-                    world.update("restart")
+                  world.update("restart")
 
         # --- Update game world ---
         world.update()
         world.draw()
+
+        if world.game_over:
+          game = GameIndicator(screen, theme)
+          game.instructions()
 
         # --- Draw ground ---
         ground_img = theme.get('ground')

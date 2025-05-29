@@ -229,8 +229,8 @@ class World:
           self.speed = -6
           self.last_milestone = 0
           bird.level = 1
-      milestone = bird.score // 20
-      if milestone > self.last_milestone and bird.score < 45 and milestone != 0:
+      milestone = bird.score // 100
+      if milestone > self.last_milestone and bird.score < 300 and milestone != 0:
           # self.speed_update = True
           self.speed -= 2
           bird.jump_move -= 2
@@ -383,5 +383,30 @@ class World:
       self._generate_world()
       return self.get_state()
 
+
   def update(self, player_event=None):
-    pass
+    # --- Handle user-triggered events ---
+    if player_event == "jump" and self.player.sprite and not self.game_over:
+        self.player.sprite.update(is_jump=True, game_mode=self.game_mode)
+
+    elif player_event == "restart":
+        self._generate_world()
+        return
+
+    # --- Continue normal update ---
+    self.speed_control()
+    self.apply_physics()
+    self.scrollX()
+    self.upcoming_pipes.update(self.world_shift)
+
+    rightmost_x = -float('inf')
+    for pipe in self.upcoming_pipes:
+        rightmost_x = max(rightmost_x, pipe.rect.right)
+    if rightmost_x < WIDTH - (PIPE_SIZE * self.dist):
+        self._add_pipe()
+
+    self.handle_collision()
+    self.update_score_and_reward()
+
+    if self.player.sprite:
+      self.player.sprite.score = self.last_score

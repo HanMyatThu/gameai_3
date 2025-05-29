@@ -4,7 +4,7 @@ from os import walk
 # ========== Game Screen ==========
 WIDTH, HEIGHT = 900, 650
 GROUND_HEIGHT = 60
-FPS = 60
+FPS = 120
 
 # ========== Theme ==========
 DEFAULT_THEME = "day"

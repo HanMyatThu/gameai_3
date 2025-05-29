@@ -28,6 +28,7 @@ AGENT_CLASSES = [PPOAgent, DoubleDQNAgent]
 
 # themes we support
 THEMES = ["day", "hell", "space","night"]
+DEFAULT = ["best"]
 
 FPS       = 90
 NUM_GAMES = 10
@@ -43,13 +44,36 @@ def parse_args():
     )
     return p.parse_args()
 
-def init_agents(model_idx):
-    base_dir    = MODEL_DIRS[model_idx]
-    tag         = MODEL_TAGS[model_idx]
-    AgentClass  = AGENT_CLASSES[model_idx]
+def init_agents(model_idx, isMulti=True):
+    base_dir   = MODEL_DIRS[model_idx]
+    tag        = MODEL_TAGS[model_idx]
+    AgentClass = AGENT_CLASSES[model_idx]
+    agents     = {}
 
-    agents = {}
-    for theme_name in THEMES:
+    if isMulti:
+        for theme_name in THEMES:
+            chkpt_dir = os.path.join(base_dir, theme_name, "best")
+            agent = AgentClass(
+                state_dim=4,
+                action_dim=2,
+                chkpt_dir=chkpt_dir
+            )
+            try:
+                agent.load_models(tag)
+                if model_idx == 0:
+                    agent.set_eval_mode()
+                else:
+                    agent.q_online.eval()
+                print(f"[INFO] Loaded {MODEL_TYPES[model_idx].upper()} agent for theme '{theme_name}' from '{chkpt_dir}'")
+            except Exception as e:
+                print(f"[ERROR] loading {theme_name} agent from {chkpt_dir}: {e}")
+                pygame.quit()
+                sys.exit(1)
+
+            agents[theme_name] = agent
+    else:
+        # Load only the agent from the 'day' theme directory (or your default)
+        theme_name = "day"
         chkpt_dir = os.path.join(base_dir, theme_name, "best")
         agent = AgentClass(
             state_dim=4,
@@ -58,24 +82,23 @@ def init_agents(model_idx):
         )
         try:
             agent.load_models(tag)
-            # for PPO we might need eval mode; for DDQN we eval the online net
             if model_idx == 0:
                 agent.set_eval_mode()
             else:
                 agent.q_online.eval()
-            print(f"[INFO] Loaded {MODEL_TYPES[model_idx].upper()} agent for theme '{theme_name}' from '{chkpt_dir}'")
+            print(f"[INFO] Loaded {MODEL_TYPES[model_idx].upper()} agent (single mode) from '{chkpt_dir}'")
         except Exception as e:
-            print(f"[ERROR] loading {theme_name} agent from {chkpt_dir}: {e}")
+            print(f"[ERROR] loading single agent from {chkpt_dir}: {e}")
             pygame.quit()
             sys.exit(1)
 
-        agents[theme_name] = agent
-
+        agents["day"] = agent
     return agents
 
-def play_game(agents):
+
+def play_game(agents, isMulti=True):
     screen = pygame.display.get_surface()
-    world  = World(screen, theme, isMulti=True)
+    world  = World(screen, theme, isMulti)
 
     # scrolling offsets
     bg_scroll     = 0
@@ -95,46 +118,49 @@ def play_game(agents):
 
         start = time.time()
         while not done:
-            # handle quit events
-            for ev in pygame.event.get():
-                if ev.type == pygame.QUIT:
-                    print("Playback stopped by user.")
-                    return
+          # handle quit events
+          for ev in pygame.event.get():
+              if ev.type == pygame.QUIT:
+                print("Playback stopped by user.")
+                return
 
-            # if theme changed in the world, swap agent
+          # if theme changed in the world, swap agent
+          if isMulti: 
             if world.game_mode != current_mode:
-                current_mode  = world.game_mode
-                current_agent = agents.get(current_mode, current_agent)
-                print(f"[SWITCH] Now using '{current_mode}' agent")
+              current_mode  = world.game_mode
+              current_agent = agents.get(current_mode, current_agent)
+              print(f"[SWITCH] Now using '{current_mode}' agent")
+          else: 
+            pass
 
-            # agent chooses action
-            action = current_agent.get_greedy_action(state)
+          # agent chooses action
+          action = current_agent.get_greedy_action(state)
 
-            # step environment
-            next_state, reward, done = world.step(action)
-            state = np.array(next_state, dtype=np.float32)
-            total_reward += reward
-            steps += 1
+          # step environment
+          next_state, reward, done = world.step(action)
+          state = np.array(next_state, dtype=np.float32)
+          total_reward += reward
+          steps += 1
 
-            # --- render scrolling background ---
-            bg_img   = pygame.transform.scale(theme.get("background"), (WIDTH, HEIGHT))
-            w        = bg_img.get_width()
-            bg_scroll = (bg_scroll + BG_SPEED) % w
-            screen.blit(bg_img, (-bg_scroll, 0))
-            screen.blit(bg_img, (-bg_scroll + w, 0))
+          # --- render scrolling background ---
+          bg_img   = pygame.transform.scale(theme.get("background"), (WIDTH, HEIGHT))
+          w        = bg_img.get_width()
+          bg_scroll = (bg_scroll + BG_SPEED) % w
+          screen.blit(bg_img, (-bg_scroll, 0))
+          screen.blit(bg_img, (-bg_scroll + w, 0))
 
-            # draw game elements
-            world.draw()
+          # draw game elements
+          world.draw()
 
-            # --- render scrolling ground ---
-            gr_img      = theme.get("ground")
-            gw          = gr_img.get_width()
-            ground_scroll = (ground_scroll + GRD_SPEED) % gw
-            screen.blit(gr_img, (-ground_scroll, HEIGHT))
-            screen.blit(gr_img, (-ground_scroll + gw, HEIGHT))
+          # --- render scrolling ground ---
+          gr_img      = theme.get("ground")
+          gw          = gr_img.get_width()
+          ground_scroll = (ground_scroll + GRD_SPEED) % gw
+          screen.blit(gr_img, (-ground_scroll, HEIGHT))
+          screen.blit(gr_img, (-ground_scroll + gw, HEIGHT))
 
-            pygame.display.flip()
-            clock.tick(FPS)
+          pygame.display.flip()
+          clock.tick(FPS)
 
         duration = time.time() - start
         print(f"Score:       {world.last_score}")
@@ -153,16 +179,20 @@ if __name__ == "__main__":
     theme  = ThemeManager()
     clock  = pygame.time.Clock()
 
+    if model_idx == 0:
+      isMulti = True
+    else:
+      isMulti = False
     # load all three agents for chosen type
-    agents = init_agents(model_idx)
+    agents = init_agents(model_idx, isMulti)
 
     try:
-        play_game(agents)
+      play_game(agents, isMulti)
     except Exception as e:
-        print(f"[ERROR] during playback: {e}")
+      print(f"[ERROR] during playback: {e}")
     finally:
-        # Stop any looping sounds
-        for s in ("background", "day", "night", "hit"):
-            soundStop(s)
-        pygame.quit()
-        sys.exit(0)
+      # Stop any looping sounds
+      for s in ("background", "day", "night", "hit"):
+          soundStop(s)
+      pygame.quit()
+      sys.exit(0)
