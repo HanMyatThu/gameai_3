@@ -341,7 +341,7 @@ class World:
       if action == 1:
           if bird:
             bird.update(game_mode = self.game_mode, is_jump=True)
-            play("jump")
+            # play("jump")
 
       self.speed_control()
       self.apply_physics()
